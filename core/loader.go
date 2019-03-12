@@ -22,6 +22,7 @@ var (
 type Module interface {
 	CheckDepend(Service) bool // 检查Service依赖,如果为true则表示依赖满足,可以执行模块初始化
 	Start(Service) bool       // 启动模块,true代表安装了新的service
+	Stop(Service)             // 关闭插件
 }
 
 // Option 配置回调函数
@@ -31,6 +32,7 @@ type object struct {
 	// 服务列表
 	serviceTable sync.Map
 	modulePath   string
+	moduleList   []Module
 }
 
 // Loader 加载器接口
@@ -46,7 +48,7 @@ var _ Service = (*object)(nil)
 // NewLoader 创建新的加载器
 func NewLoader(opts ...Option) Loader {
 	obj := &object{
-		//
+		moduleList: make([]Module, 0),
 	}
 	// 执行配置
 	for _, opt := range opts {
@@ -121,9 +123,10 @@ REINIT:
 		} else {
 			module := sym.(Module)
 			if module.CheckDepend(o) { // 检查模块的依赖是否满足
-				log.Printf("Start module %s.\n", m)
-				reinit = module.Start(o) // 执行模块初始化,并且更新 是否需要重新初始化 标志
-				moduleInited[m] = true   // 记录已经初始化
+				log.Printf("Start module: %s.\n", m)
+				reinit = module.Start(o)                    // 执行模块初始化,并且更新 是否需要重新初始化 标志
+				moduleInited[m] = true                      // 记录已经初始化
+				o.moduleList = append(o.moduleList, module) // 记录插件列表
 			} else {
 				log.Printf("Module %s dependence fail.\n", m)
 			}
@@ -160,8 +163,12 @@ func (o *object) Start() (err error) {
 	var srv Service = o // 获得服务接口
 	var app interface{} // 应用接口
 	app, err = srv.LocateService(SrvApplicationUUID)
-	(app.(Application)).Main(srv)
+	(app.(ApplicationService)).Main(srv)
 	log.Print("Application returned.")
+	// 停止模块
+	for _, m := range o.moduleList {
+		m.Stop(srv)
+	}
 	return nil
 }
 
