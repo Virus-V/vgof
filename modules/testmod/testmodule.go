@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"vgof/core"
 
@@ -15,4 +16,5 @@ type app struct {
 func (a *app) Main(s core.Service) {
 	log.Print("Hello Module! adsadsad ")
 	a.logger.Info("Hello world zlog!")
+	panic(errors.New("test error"))
 }

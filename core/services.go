@@ -65,8 +65,8 @@ func (o *object) CheckServices(name ...uuid.UUID) bool {
 	cnt := len(name)
 	var existed int
 	o.serviceTable.Range(func(k, v interface{}) bool {
-		for _, vo := range name {
-			if vo == k.(uuid.UUID) {
+		for _, v := range name {
+			if v == k.(uuid.UUID) {
 				existed++
 			}
 		}

@@ -14,6 +14,6 @@ func main() {
 	// 开始任务
 	err = loader.Start()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Application exit with error: %s\n", err)
 	}
 }
