@@ -163,6 +163,9 @@ func (o *object) Start() (err error) {
 	var srv Service = o // 获得服务接口
 	var app interface{} // 应用接口
 	app, err = srv.LocateService(SrvApplicationUUID)
+	if err != nil {
+		panic(err)
+	}
 	(app.(ApplicationService)).Main(srv)
 	log.Print("Application returned.")
 	// 停止模块
