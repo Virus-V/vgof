@@ -169,8 +169,8 @@ func (o *object) Start() (err error) {
 	(app.(ApplicationService)).Main(srv)
 	log.Print("Application returned.")
 	// 停止模块
-	for _, m := range o.moduleList {
-		m.Stop(srv)
+	for i := len(o.moduleList) - 1; i >= 0; i-- {
+		o.moduleList[i].Stop(srv)
 	}
 	return nil
 }
