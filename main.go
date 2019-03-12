@@ -1,8 +1,8 @@
 package main
 
 import (
-	"idea/core"
 	"log"
+	"vgof/core"
 )
 
 func main() {

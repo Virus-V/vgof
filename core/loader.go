@@ -116,7 +116,7 @@ REINIT:
 		}
 		var sym plugin.Symbol
 		// 找到模块对象接口
-		if sym, err = mObj.Lookup("Module"); err != nil {
+		if sym, err = mObj.Lookup("ModuleEntry"); err != nil {
 			panic(err)
 		} else {
 			module := sym.(Module)
@@ -168,6 +168,7 @@ func (o *object) Start() (err error) {
 // OptModulePath 设置模块目录
 func OptModulePath(path string) Option {
 	return func(o *object) {
+		path = strings.TrimRight(path, "/") + "/"
 		o.modulePath = path
 	}
 }

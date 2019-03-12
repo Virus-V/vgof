@@ -1,19 +1,15 @@
 package main
 
 import (
-	"idea/core"
 	"log"
+	"vgof/core"
 )
 
 type testModule struct {
 }
 
-// Application 服务接口
-type app struct {
-}
-
-// Module 模块入口点
-var Module = &testModule{}
+// ModuleEntry 模块入口点
+var ModuleEntry = testModule{}
 
 var _ core.Module = (*testModule)(nil)
 
@@ -31,10 +27,6 @@ func (t *testModule) Start(s core.Service) bool {
 	return true
 }
 
-func (a *app) Main(s core.Service) {
-	log.Print("Hello Module!")
-}
-
 func main() {
-	log.Fatal("this is a module!!")
+	log.Fatal("This is a vgof module, please build this package with \"-buildmode=plugin\".")
 }
