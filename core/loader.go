@@ -61,12 +61,15 @@ func NewLoader(opts ...Option) Loader {
 func (o *object) LoadAll() error {
 	modules := make([]string, 0)
 	// 获取所有文件
-	modulePath, _ := ioutil.ReadDir(o.modulePath)
+	modulePath, err := ioutil.ReadDir(o.modulePath)
+	if err != nil {
+		panic(err)
+	}
 	for _, file := range modulePath {
 		if file.IsDir() {
 			continue
 		} else {
-			// TODO 过滤文件后缀
+			// 过滤文件后缀
 			ext := path.Ext(file.Name())
 			if ext != ".so" {
 				continue
@@ -158,6 +161,10 @@ func (o *object) Start() (err error) {
 				err = ErrUnknowError
 			}
 		}
+		// 停止模块
+		for i := len(o.moduleList) - 1; i >= 0; i-- {
+			o.moduleList[i].Stop(o)
+		}
 	}()
 	// 找到SrvApplicationUUID这个服务
 	var srv Service = o // 获得服务接口
@@ -168,10 +175,6 @@ func (o *object) Start() (err error) {
 	}
 	(app.(ApplicationService)).Main(srv)
 	log.Print("Application returned.")
-	// 停止模块
-	for i := len(o.moduleList) - 1; i >= 0; i-- {
-		o.moduleList[i].Stop(srv)
-	}
 	return nil
 }
 
