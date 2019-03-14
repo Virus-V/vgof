@@ -141,12 +141,12 @@ REINIT:
 		}
 		// 检查模块的依赖是否满足
 		if m.CheckDepend(o) {
-			log.Printf("Start module: %s.\n", m)
+			log.Printf("Start module: \"%s\".\n", m)
 			reinit = m.Start(o)                    // 执行模块初始化,并且更新 是否需要重新初始化 标志
 			moduleInited[m] = true                 // 记录已经初始化
 			o.moduleList = append(o.moduleList, m) // 记录插件列表
 		} else {
-			log.Printf("Module %s dependence fail.\n", m)
+			log.Printf("Module \"%s\" dependence fail.\n", m)
 		}
 	}
 	if reinit {
@@ -157,7 +157,7 @@ REINIT:
 		if moduleInited[m] == true { // 跳过已初始化的模块
 			continue
 		}
-		log.Printf("Module %s has not been install.\n", m)
+		log.Printf("Module \"%s\" has not been install.\n", m)
 	}
 	return nil
 }

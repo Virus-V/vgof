@@ -14,6 +14,10 @@ type app struct {
 }
 
 func (a *app) Main(s core.Service) {
+	sTmp := core.GlobalServices()
+	if sTmp != s {
+		log.Print("Not match")
+	}
 	log.Print("Hello Module! adsadsad ")
 	a.logger.Info("Hello world zlog!")
 	panic(errors.New("test error"))
