@@ -20,6 +20,7 @@ var (
 
 // Module 模块接口
 type Module interface {
+	String() string           // 获得模块名称
 	CheckDepend(Service) bool // 检查Service依赖,如果为true则表示依赖满足,可以执行模块初始化
 	Start(Service) bool       // 启动模块,true代表安装了新的service
 	Stop(Service)             // 关闭插件
@@ -37,9 +38,10 @@ type object struct {
 
 // Loader 加载器接口
 type Loader interface {
-	LoadAll() error           // 加载模块目录下全部的模块
-	LoadList(...string) error // 加载指定的模块
-	Start() error             // 执行最终应用入口
+	LoadAll() ([]Module, error)          // 加载模块目录下全部的模块
+	LoadList([]string) ([]Module, error) // 加载指定的模块
+	Dispatch(modules []Module) error     // 调度列表里的所有模块
+	Start() error                        // 执行最终应用入口
 }
 
 var _ Loader = (*object)(nil)
@@ -57,13 +59,13 @@ func NewLoader(opts ...Option) Loader {
 	return obj
 }
 
-// Load 加载目录下所有模块
-func (o *object) LoadAll() error {
+// Load 加载目录下所有模块文件
+func (o *object) LoadAll() ([]Module, error) {
 	modules := make([]string, 0)
 	// 获取所有文件
 	modulePath, err := ioutil.ReadDir(o.modulePath)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	for _, file := range modulePath {
 		if file.IsDir() {
@@ -78,19 +80,45 @@ func (o *object) LoadAll() error {
 		}
 	}
 	if len(modules) == 0 {
-		return ErrNoMoudles
+		return nil, ErrNoMoudles
 	}
 	// 加载module
-	return o.loadModules(modules...)
+	return o.loadModules(modules)
 }
 
-// LoadList 加载指定的模块
-func (o *object) LoadList(modules ...string) error {
+// LoadList 加载指定的模块文件
+func (o *object) LoadList(modules []string) ([]Module, error) {
 	// 加载module
-	return o.loadModules(modules...)
+	return o.loadModules(modules)
 }
 
-func (o *object) loadModules(modules ...string) (err error) {
+func (o *object) loadModules(modules []string) ([]Module, error) {
+	if modules == nil || len(modules) == 0 {
+		return nil, ErrBadParame
+	}
+	// 已初始化的模块列表
+	moduleList := make([]Module, 0)
+	for _, m := range modules {
+		where := o.modulePath + m + ".so"
+		mObj, err := plugin.Open(where)
+		if err != nil {
+			return nil, err
+		}
+		var sym plugin.Symbol
+		// 找到模块对象接口
+		if sym, err = mObj.Lookup("ModuleEntry"); err != nil {
+			return nil, err
+		} else {
+			// 放入模块列表
+			moduleList = append(moduleList, sym.(Module))
+		}
+	}
+	// 调度模块列表
+	return moduleList, nil
+}
+
+// Dispatch 调度模块列表
+func (o *object) Dispatch(modules []Module) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			debug.PrintStack()
@@ -103,36 +131,22 @@ func (o *object) loadModules(modules ...string) (err error) {
 			}
 		}
 	}()
-	if modules == nil || len(modules) == 0 {
-		return ErrBadParame
-	}
 	// 已初始化的模块列表
-	moduleInited := make(map[string]bool)
+	moduleInited := make(map[Module]bool)
 REINIT:
 	reinit := false
 	for _, m := range modules {
 		if moduleInited[m] == true { // 跳过已初始化的模块
 			continue
 		}
-		where := o.modulePath + m + ".so"
-		mObj, err := plugin.Open(where)
-		if err != nil {
-			panic(err)
-		}
-		var sym plugin.Symbol
-		// 找到模块对象接口
-		if sym, err = mObj.Lookup("ModuleEntry"); err != nil {
-			panic(err)
+		// 检查模块的依赖是否满足
+		if m.CheckDepend(o) {
+			log.Printf("Start module: %s.\n", m)
+			reinit = m.Start(o)                    // 执行模块初始化,并且更新 是否需要重新初始化 标志
+			moduleInited[m] = true                 // 记录已经初始化
+			o.moduleList = append(o.moduleList, m) // 记录插件列表
 		} else {
-			module := sym.(Module)
-			if module.CheckDepend(o) { // 检查模块的依赖是否满足
-				log.Printf("Start module: %s.\n", m)
-				reinit = module.Start(o)                    // 执行模块初始化,并且更新 是否需要重新初始化 标志
-				moduleInited[m] = true                      // 记录已经初始化
-				o.moduleList = append(o.moduleList, module) // 记录插件列表
-			} else {
-				log.Printf("Module %s dependence fail.\n", m)
-			}
+			log.Printf("Module %s dependence fail.\n", m)
 		}
 	}
 	if reinit {
@@ -183,5 +197,12 @@ func OptModulePath(path string) Option {
 	return func(o *object) {
 		path = strings.TrimRight(path, "/") + "/"
 		o.modulePath = path
+	}
+}
+
+// OptGlobalServices 将该对象设置为全局服务表
+func OptGlobalServices() Option {
+	return func(o *object) {
+		globalServices = o
 	}
 }

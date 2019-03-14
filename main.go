@@ -6,8 +6,15 @@ import (
 )
 
 func main() {
-	loader := core.NewLoader(core.OptModulePath("./modules"))
-	err := loader.LoadAll()
+	loader := core.NewLoader(
+		core.OptModulePath("./modules"),
+		core.OptGlobalServices())
+	modules, err := loader.LoadAll()
+	if err != nil {
+		log.Fatal(err)
+	}
+	// 调度模块列表
+	err = loader.Dispatch(modules)
 	if err != nil {
 		log.Fatal(err)
 	}

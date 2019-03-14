@@ -12,6 +12,9 @@ var (
 	ErrInstalled  = errors.New("The service has already installed")
 )
 
+// globalServices 全局Services对象
+var globalServices Service
+
 // Service 服务接口
 type Service interface {
 	LocateService(name uuid.UUID) (interface{}, error)
@@ -19,6 +22,11 @@ type Service interface {
 	ReplaceService(name uuid.UUID, service interface{}) interface{}
 	UninstallServices(name ...uuid.UUID)
 	CheckServices(name ...uuid.UUID) bool
+}
+
+// GlobalServices 获得全局Loader对象
+func GlobalServices() Service {
+	return globalServices
 }
 
 // LocateService 获得服务

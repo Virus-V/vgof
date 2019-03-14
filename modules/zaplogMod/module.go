@@ -36,6 +36,11 @@ func (t *zaplogMod) Stop(s core.Service) {
 	t.obj.logger.Sync()
 }
 
+// String 获得模块描述
+func (t *zaplogMod) String() string {
+	return "Zap Log Module"
+}
+
 func main() {
 	log.Fatal("This is a vgof module, please build this package with \"-buildmode=plugin\".")
 }
